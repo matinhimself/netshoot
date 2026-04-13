@@ -4,4 +4,4 @@ WORKDIR /app
 
 RUN apk add gost sing-box
 
-COPY ./network-probe ./
+COPY ./network-probe ./network-probe
