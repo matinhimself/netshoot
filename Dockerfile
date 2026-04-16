@@ -1,30 +1,53 @@
-FROM someguy123/net-tools:latest
+FROM ubuntu:latest
 
 USER root
+ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Switch to old-releases mirrors to fix connection/404 errors on Ubuntu 18.04
-RUN sed -i 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list && \
-    sed -i 's/security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
-
-# 2. Update and install core tools
-RUN apt-get update && apt-get install -y --fix-missing --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    wget \
+    vim \
+    nano \
     ca-certificates \
     gnupg \
-    wget \
-    kcptun \
-    software-properties-common && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get update
+    procps \
+    git \
+    iputils-ping \
+    net-tools \
+    iproute2 \
+    netcat-openbsd \
+    telnet \
+    nmap \
+    iperf3 \
+    mtr-tiny \
+    traceroute \
+    tcpdump \
+    dnsutils \
+    socat \
+    openssh-client \
+    openssh-server \
+    nginx \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 3. Install Python 3.12
-RUN apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-venv \
-    python3.12-distutils && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN mkdir /var/run/sshd && \
+    echo 'root:root' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-# 4. Setup SagerNet / sing-box
+RUN KCP_VERSION=$(curl -s https://api.github.com/repos/xtaci/kcptun/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
+    wget https://github.com/xtaci/kcptun/releases/download/v${KCP_VERSION}/kcptun-linux-amd64-${KCP_VERSION}.tar.gz && \
+    tar -zxvf kcptun-linux-amd64-${KCP_VERSION}.tar.gz -C /usr/local/bin/ && \
+    rm kcptun-linux-amd64-${KCP_VERSION}.tar.gz
+
+RUN GOST_VERSION=$(curl -s https://api.github.com/repos/go-gost/gost/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
+    wget https://github.com/go-gost/gost/releases/download/v${GOST_VERSION}/gost_${GOST_VERSION}_linux_amd64.tar.gz && \
+    tar -zxvf gost_${GOST_VERSION}_linux_amd64.tar.gz && \
+    mv gost /usr/local/bin/gost && \
+    chmod +x /usr/local/bin/gost && \
+    rm gost_${GOST_VERSION}_linux_amd64.tar.gz
+
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://sing-box.app/gpg.key | gpg --dearmor -o /etc/apt/keyrings/sagernet.gpg && \
     chmod a+r /etc/apt/keyrings/sagernet.gpg && \
@@ -33,21 +56,12 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y sing-box
 
-# 5. Setup GOST
-RUN GOST_VERSION=$(curl -s https://api.github.com/repos/go-gost/gost/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
-    wget https://github.com/go-gost/gost/releases/download/v${GOST_VERSION}/gost_${GOST_VERSION}_linux_amd64.tar.gz && \
-    tar -zxvf gost_${GOST_VERSION}_linux_amd64.tar.gz && \
-    mv gost /usr/local/bin/gost && \
-    chmod +x /usr/local/bin/gost && \
-    rm gost_${GOST_VERSION}_linux_amd64.tar.gz
-
-# 6. Set Python 3.12 as the default
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
-
 WORKDIR /root
 
-# Verification
-RUN sing-box version && gost -V && python3 --version
+RUN sing-box version && \
+    gost -V && \
+    python3 --version && \
+    nginx -v
 
 COPY ./network-probe ./network-probe
 
