@@ -56,11 +56,14 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 WORKDIR /root
 
+RUN install -y --no-install-recommends wireguard wireguard-tools
+
 RUN sing-box version && \
     gost -V && \
     python3 --version && \
     kcptun-server --version && \
-    nginx -v
+    nginx -v && \
+    wg -v
 
 COPY ./network-probe ./network-probe
 
