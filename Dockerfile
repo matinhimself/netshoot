@@ -56,7 +56,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 WORKDIR /root
 
-RUN install -y --no-install-recommends wireguard wireguard-tools
+RUN apt install -y --no-install-recommends wireguard wireguard-tools
 
 RUN sing-box version && \
     gost -V && \
