@@ -38,6 +38,7 @@ jobs:
 
       # Login to Docker Hub
       - name: Log into Docker Hub
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_DOCKERHUB }}
