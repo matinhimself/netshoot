@@ -1,0 +1,13 @@
+# FRP client config — reverse tunnel to expose sing-box SOCKS5 via remote FRP server
+# Set serverAddr to your FRP server's IP or hostname
+serverAddr = "127.0.0.1"
+serverPort = 7000
+
+# auth.token = "your-secret-token"
+
+[[proxies]]
+name = "socks5-tunnel"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 1080
+remotePort = 6000

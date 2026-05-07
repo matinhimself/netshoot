@@ -44,15 +44,13 @@ RUN GOST_VERSION=$(curl -s https://api.github.com/repos/go-gost/gost/releases/la
     chmod +x /usr/local/bin/gost && \
     rm gost_${GOST_VERSION}_linux_amd64.tar.gz
 
-# Replace your existing sing-box RUN command with this:
 RUN ARCH=$(dpkg --print-architecture) && \
     SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
     wget https://github.com/SagerNet/sing-box/releases/download/v${SB_VERSION}/sing-box-${SB_VERSION}-linux-${ARCH}.tar.gz && \
     tar -zxvf sing-box-${SB_VERSION}-linux-${ARCH}.tar.gz && \
-    # The tar creates a folder, we find the binary inside and move it
     mv sing-box-*/sing-box /usr/local/bin/sing-box && \
     chmod +x /usr/local/bin/sing-box && \
-    rm -rf sing-box-* \
+    rm -rf sing-box-*
 
 WORKDIR /root
 
@@ -60,13 +58,28 @@ ENV WG_QUICK_USERSPACE_IMPLEMENTATION=wireguard-go
 ENV WG_SUDO=1
 RUN apt install -y --no-install-recommends wireguard-go wireguard-tools
 
+# Install FRP (Fast Reverse Proxy)
+RUN ARCH=$(dpkg --print-architecture) && \
+    FRP_VERSION=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
+    wget https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_${ARCH}.tar.gz && \
+    tar -zxvf frp_${FRP_VERSION}_linux_${ARCH}.tar.gz && \
+    mv frp_${FRP_VERSION}_linux_${ARCH}/frpc /usr/local/bin/frpc && \
+    mv frp_${FRP_VERSION}_linux_${ARCH}/frps /usr/local/bin/frps && \
+    chmod +x /usr/local/bin/frpc /usr/local/bin/frps && \
+    rm -rf frp_${FRP_VERSION}_linux_${ARCH}*
+
+RUN mkdir -p /etc/frp /etc/sing-box
+
 RUN sing-box version && \
     gost -V && \
     python3 --version && \
     kcptun-server --version && \
     nginx -v && \
-    wg -v
+    wg -v && \
+    frpc --version
 
 COPY ./network-probe ./network-probe
+COPY ./configs/frpc.toml /etc/frp/frpc.toml
+COPY ./configs/sing-box.json /etc/sing-box/config.json
 
 CMD ["/bin/bash"]
