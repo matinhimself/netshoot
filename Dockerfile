@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv
 
-RUN mkdir /var/run/sshd && \
+RUN mkdir -p /var/run/sshd && \
     echo 'root:root' | chpasswd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -44,10 +44,12 @@ RUN GOST_VERSION=$(curl -s https://api.github.com/repos/go-gost/gost/releases/la
     chmod +x /usr/local/bin/gost && \
     rm gost_${GOST_VERSION}_linux_amd64.tar.gz
 
+# Replace your existing sing-box RUN command with this:
 RUN ARCH=$(dpkg --print-architecture) && \
     SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/v//') && \
     wget https://github.com/SagerNet/sing-box/releases/download/v${SB_VERSION}/sing-box-${SB_VERSION}-linux-${ARCH}.tar.gz && \
     tar -zxvf sing-box-${SB_VERSION}-linux-${ARCH}.tar.gz && \
+    # The tar creates a folder, we find the binary inside and move it
     mv sing-box-*/sing-box /usr/local/bin/sing-box && \
     chmod +x /usr/local/bin/sing-box && \
     rm -rf sing-box-*
@@ -57,6 +59,15 @@ WORKDIR /root
 ENV WG_QUICK_USERSPACE_IMPLEMENTATION=wireguard-go
 ENV WG_SUDO=1
 RUN apt install -y --no-install-recommends wireguard-go wireguard-tools
+
+# --- NEW: Install paqet from latest GitHub releases ---
+RUN ARCH=$(dpkg --print-architecture) && \
+    PAQET_TAG=$(curl -s https://api.github.com/repos/hanselime/paqet/releases/latest | grep tag_name | cut -d '"' -f 4) && \
+    wget "https://github.com/hanselime/paqet/releases/download/${PAQET_TAG}/paqet-linux-${ARCH}-${PAQET_TAG}.tar.gz" && \
+    tar -zxvf paqet-linux-${ARCH}-${PAQET_TAG}.tar.gz && \
+    mv paqet_linux_${ARCH} /usr/local/bin/paqet && \
+    chmod +x /usr/local/bin/paqet && \
+    rm paqet-linux-${ARCH}-${PAQET_TAG}.tar.gz
 
 # Install FRP (Fast Reverse Proxy)
 RUN ARCH=$(dpkg --print-architecture) && \
@@ -70,12 +81,14 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 RUN mkdir -p /etc/frp /etc/sing-box
 
+# Verification layer
 RUN sing-box version && \
     gost -V && \
     python3 --version && \
     kcptun-server --version && \
     nginx -v && \
     wg -v && \
+    paqet version && \
     frpc --version
 
 COPY ./network-probe ./network-probe
@@ -83,3 +96,4 @@ COPY ./configs/frpc.toml /etc/frp/frpc.toml
 COPY ./configs/sing-box.json /etc/sing-box/config.json
 
 CMD ["/bin/bash"]
+

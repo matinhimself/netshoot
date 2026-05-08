@@ -52,7 +52,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/{1}', secrets.DOCKERHUB_USERNAME, github.event.repository.name) || '' }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
